@@ -28,7 +28,7 @@ const entityFactory = new EntityFactory(
 );
 
 // Order matters: later scenes render on top of earlier ones.
-const SCENES = [BootScene, LoadingScene, new GameScene(eventBus), new UIScene(eventBus)];
+const SCENES = [BootScene, LoadingScene, new GameScene(eventBus, entityManager), new UIScene(eventBus)];
 
 try {
   logger.info('Starting Average Tuesday.');
