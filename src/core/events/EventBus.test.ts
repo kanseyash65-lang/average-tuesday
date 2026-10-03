@@ -1,21 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ILogger } from '../../utils/logger/ILogger';
+import { createFakeLogger } from '../../utils/testing/createFakeLogger';
 import { EventBus } from './EventBus';
 
 interface ITestEvents {
   readonly Ping: { readonly id: number };
   readonly Pong: { readonly id: number };
-}
-
-function createFakeLogger(): ILogger {
-  return {
-    trace: vi.fn(),
-    debug: vi.fn(),
-    info: vi.fn(),
-    warning: vi.fn(),
-    error: vi.fn(),
-    fatal: vi.fn(),
-  };
 }
 
 function createBus(maxEventsPerFlush = 100): { bus: EventBus<ITestEvents>; logger: ILogger } {
