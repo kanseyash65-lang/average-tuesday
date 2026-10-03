@@ -1,3 +1,4 @@
+import type { CommandSource } from '../../commands/CommandSource';
 import type { EntityId } from '../../entities/base/Entity';
 import type { IEventBus } from './IEventBus';
 
@@ -7,6 +8,8 @@ export interface IGameEventMap {
   readonly UIReady: { readonly readyAtMs: number };
   readonly EntitySpawned: { readonly entityId: EntityId; readonly entityType: string };
   readonly EntityDestroyed: { readonly entityId: EntityId; readonly entityType: string };
+  /** The player submitted a command, by voice (dictation) or by keyboard. */
+  readonly CommandSubmitted: { readonly text: string; readonly source: CommandSource };
 }
 
 export type GameEventBus = IEventBus<IGameEventMap>;
