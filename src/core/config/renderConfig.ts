@@ -20,5 +20,6 @@ export const RENDER_CONFIG: IRenderConfig = {
   defaultStyle: { baseRadius: 24 },
   styles: {
     sun: { baseRadius: 56 },
+    chicken: { baseRadius: 10 },
   },
 };

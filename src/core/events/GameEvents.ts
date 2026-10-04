@@ -18,6 +18,13 @@ export interface IGameEventMap {
   };
   /** A command could not run. The reason is written for the player to read. */
   readonly CommandRejected: { readonly text: string; readonly reason: string };
+  /** A spawn command created entities. One summary per command, so reactions need not count EntitySpawned. */
+  readonly EntitiesSpawned: {
+    readonly commandId: string;
+    readonly entityType: string;
+    readonly requested: number;
+    readonly spawned: number;
+  };
   /** A command changed one property of one entity. Lets other systems react. */
   readonly EntityPropertyChanged: {
     readonly entityId: EntityId;

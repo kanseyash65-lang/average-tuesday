@@ -1,6 +1,6 @@
 import type { CommandSource } from './CommandSource';
 
-export type CommandIntent = 'modify';
+export type CommandIntent = 'modify' | 'spawn';
 export type PropertyName = 'color' | 'size' | 'visibility' | 'position';
 
 /** The new value a command wants, plus a short spoken-style label for feedback. */
@@ -25,10 +25,34 @@ export interface IParsedRequest {
 /** A structured command, ready to validate and execute (see 04_COMMAND_ENGINE). */
 export interface ICommand {
   readonly commandId: string;
-  readonly intent: CommandIntent;
+  readonly intent: 'modify';
   readonly targetName: string;
   readonly property: PropertyName;
   readonly value: CommandValue;
+  readonly source: CommandSource;
+  readonly confidence: number;
+}
+
+/** A kind of thing the player can create, and how to say it. */
+export interface ISpawnable {
+  /** Matches the entityType of its definition, for example 'chicken'. */
+  readonly entityType: string;
+  readonly singularName: string;
+  readonly pluralName: string;
+}
+
+/** What the parser understood from "spawn 5 chickens". */
+export interface ISpawnRequest {
+  readonly spawnable: ISpawnable;
+  readonly quantity: number;
+}
+
+/** A structured spawn command, ready to validate and execute. */
+export interface ISpawnCommand {
+  readonly commandId: string;
+  readonly intent: 'spawn';
+  readonly spawnable: ISpawnable;
+  readonly quantity: number;
   readonly source: CommandSource;
   readonly confidence: number;
 }

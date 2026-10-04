@@ -4,11 +4,14 @@ import { createLogger } from './core/boot/createLogger';
 import { createPhaserConfig } from './core/boot/createPhaserConfig';
 import { ENTITY_CONFIG } from './core/config/entityConfig';
 import { EVENT_CONFIG } from './core/config/eventConfig';
+import { SPAWN_CONFIG } from './core/config/spawnConfig';
 import { EventBus } from './core/events/EventBus';
 import type { IGameEventMap } from './core/events/GameEvents';
+import { SPAWNABLE_DEFINITIONS } from './entities/definitions/spawnableDefinitions';
 import { SUN_DEFINITION } from './entities/definitions/sunDefinition';
 import { EntityFactory } from './entities/factory/EntityFactory';
 import { EntityIdGenerator } from './entities/factory/EntityIdGenerator';
+import { EntitySpawner } from './entities/factory/EntitySpawner';
 import { EntityManager } from './entities/registry/EntityManager';
 import { BootScene } from './scenes/boot-scene/BootScene';
 import { GameScene } from './scenes/game-scene/GameScene';
@@ -28,9 +31,18 @@ const entityFactory = new EntityFactory(
   new EntityIdGenerator(ENTITY_CONFIG.idDigits),
 );
 
+const entitySpawner = new EntitySpawner(
+  entityFactory,
+  entityManager,
+  SPAWN_CONFIG,
+  SPAWNABLE_DEFINITIONS,
+  Math.random,
+);
+
 const commandManager = new CommandManager(
   eventBus,
   entityManager,
+  entitySpawner,
   createLogger('CommandManager'),
 );
 commandManager.start();
