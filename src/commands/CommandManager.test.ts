@@ -40,16 +40,18 @@ function createSetup() {
   const rejected: string[] = [];
   const changed: string[] = [];
   const spawnedEvents: string[] = [];
+  const destroyedEvents: string[] = [];
   bus.on('CommandExecuted', (event) => executed.push(event.summary));
   bus.on('CommandRejected', (event) => rejected.push(event.reason));
   bus.on('EntitiesSpawned', (event) => spawnedEvents.push(`${event.entityType}:${event.requested}:${event.spawned}`));
+  bus.on('EntitiesDestroyed', (event) => destroyedEvents.push(`${event.targetName}:${event.destroyed}`));
   bus.on('EntityPropertyChanged', (event) => changed.push(`${event.entityId}:${event.property}`));
 
   const say = (text: string): void => {
     bus.emit('CommandSubmitted', { text, source: 'voice' });
     bus.flush();
   };
-  return { sun, entities, bus, say, executed, rejected, changed, spawnedEvents };
+  return { sun, entities, bus, say, executed, rejected, changed, spawnedEvents, destroyedEvents };
 }
 
 describe('CommandManager', () => {
@@ -197,5 +199,88 @@ describe('CommandManager', () => {
     expect(entities.count).toBe(1500);
     say('spawn 5 chickens');
     expect(rejected[0]).toContain('world is full');
+  });
+
+  it('changes a whole group at once', () => {
+    const { sun, entities, say, executed } = createSetup();
+    say('spawn 3 chickens');
+    say('turn the chickens blue');
+    const tints = entities.getByTag('animal').map((chicken) => chicken.components.render?.tint);
+    expect(tints).toEqual([COLOR_WORDS.blue, COLOR_WORDS.blue, COLOR_WORDS.blue]);
+    expect(executed.at(-1)).toBe('3 chickens are now blue');
+    expect(sun.components.render?.tint).not.toBe(COLOR_WORDS.blue);
+  });
+
+  it('keeps the single-thing sentence when a group has one member', () => {
+    const { say, executed } = createSetup();
+    say('spawn a chicken');
+    say('turn the chicken blue');
+    expect(executed.at(-1)).toBe("Chicken's color is now blue");
+  });
+
+  it('changes everything, the sun included', () => {
+    const { sun, entities, say } = createSetup();
+    say('spawn 2 chickens');
+    say('make everything red');
+    expect(sun.components.render?.tint).toBe(COLOR_WORDS.red);
+    expect(entities.getByTag('animal')[0]?.components.render?.tint).toBe(COLOR_WORDS.red);
+  });
+
+  it('hides a tagged group and leaves the rest', () => {
+    const { sun, entities, say } = createSetup();
+    say('spawn 2 chickens');
+    say('hide all animals');
+    expect(entities.getByTag('animal').every((chicken) => chicken.components.render?.visible === false)).toBe(true);
+    expect(sun.components.render?.visible).toBe(true);
+  });
+
+  it('moves a group together', () => {
+    const { entities, say, executed } = createSetup();
+    say('spawn 2 chickens');
+    say('move the chickens down');
+    expect(entities.getByTag('animal')[0]?.components.transform?.y).toBe(400 + COMMAND_CONFIG.moveStepPixels);
+    expect(executed.at(-1)).toBe('2 chickens moved down');
+  });
+
+  it('deletes a group and announces it', () => {
+    const { sun, entities, say, executed, destroyedEvents } = createSetup();
+    say('spawn 4 chickens');
+    say('Delete all the chickens.');
+    expect(entities.getByTag('animal')).toHaveLength(0);
+    expect(entities.get(sun.id)).toBe(sun);
+    expect(executed.at(-1)).toBe('Deleted 4 chickens');
+    expect(destroyedEvents).toEqual(['chicken:4']);
+  });
+
+  it('refuses to delete the sun', () => {
+    const { sun, entities, say, rejected } = createSetup();
+    say('delete the sun');
+    expect(entities.get(sun.id)).toBe(sun);
+    expect(rejected[0]).toContain("can't be deleted");
+  });
+
+  it('deletes everything it may and spares the sun', () => {
+    const { sun, entities, say, executed } = createSetup();
+    say('spawn 3 chickens');
+    say('delete everything');
+    expect(entities.count).toBe(1);
+    expect(entities.get(sun.id)).toBe(sun);
+    expect(executed.at(-1)).toBe("Deleted 3 things (1 can't be deleted)");
+  });
+
+  it('says so when there is nothing to delete or change', () => {
+    const { say, rejected } = createSetup();
+    say('delete the chickens');
+    say('hide the chickens');
+    expect(rejected).toHaveLength(2);
+    expect(rejected[0]).toContain("couldn't find");
+  });
+
+  it('lets chickens spawn again after they were deleted', () => {
+    const { entities, say } = createSetup();
+    say('spawn 2 chickens');
+    say('remove the hens');
+    say('spawn 3 chickens');
+    expect(entities.getByTag('animal')).toHaveLength(3);
   });
 });

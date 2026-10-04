@@ -4,9 +4,9 @@ import {
   DIRECTION_WORDS,
   lookup,
   SIZE_WORDS,
-  TARGET_ALIASES,
   VISIBILITY_WORDS,
 } from '../vocabulary/vocabulary';
+import { findTarget } from './findTarget';
 
 export type ParseResult =
   | { readonly ok: true; readonly request: IParsedRequest }
@@ -15,14 +15,6 @@ export type ParseResult =
 interface IEffect {
   readonly property: PropertyName;
   readonly value: CommandValue;
-}
-
-function findTarget(tokens: readonly string[]): string | undefined {
-  for (const token of tokens) {
-    const target = lookup(TARGET_ALIASES, token);
-    if (target !== undefined) return target;
-  }
-  return undefined;
 }
 
 function effectForWord(word: string): IEffect | undefined {

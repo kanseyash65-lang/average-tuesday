@@ -25,6 +25,12 @@ export interface IGameEventMap {
     readonly requested: number;
     readonly spawned: number;
   };
+  /** A delete command removed entities. One summary per command, like EntitiesSpawned. */
+  readonly EntitiesDestroyed: {
+    readonly commandId: string;
+    readonly targetName: string;
+    readonly destroyed: number;
+  };
   /** A command changed one property of one entity. Lets other systems react. */
   readonly EntityPropertyChanged: {
     readonly entityId: EntityId;

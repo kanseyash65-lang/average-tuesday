@@ -6,14 +6,25 @@ import type { IEntitySpawner } from '../entities/factory/IEntitySpawner';
 import type { IEntityManager } from '../entities/registry/IEntityManager';
 import type { ILogger } from '../utils/logger/ILogger';
 import type { CommandSource } from './CommandSource';
-import type { ICommand, IParsedRequest, ISpawnCommand, ISpawnRequest } from './Command';
+import type {
+  ICommand,
+  IDestroyCommand,
+  IDestroyRequest,
+  IParsedRequest,
+  ISpawnCommand,
+  ISpawnRequest,
+} from './Command';
+import { describeChange } from './executor/describeChange';
+import { describeDestroy } from './executor/describeDestroy';
 import { describeSpawn } from './executor/describeSpawn';
 import { executeCommand } from './executor/executeCommand';
+import { executeDestroy } from './executor/executeDestroy';
 import { tokenize } from './lexer/tokenize';
 import { normalizeText } from './normalizer/normalizeText';
 import { parseCommand } from './parser/parseCommand';
 import { resolveTargets } from './resolver/resolveTargets';
 import { validateCommand } from './validators/validateCommand';
+import { validateDestroyCommand } from './validators/validateDestroyCommand';
 import { validateSpawnCommand } from './validators/validateSpawnCommand';
 
 type SubmittedCommand = IGameEventMap['CommandSubmitted'];
@@ -79,6 +90,7 @@ export class CommandManager {
           : COMMAND_CONFIG.exactConfidence,
     };
     if (parsed.kind === 'spawn') this.handleSpawn(parsed.request, context);
+    else if (parsed.kind === 'destroy') this.handleDestroy(parsed.request, context);
     else this.handleModify(parsed.request, context);
   }
 
@@ -118,8 +130,31 @@ export class CommandManager {
         commandId: command.commandId,
       });
     }
-    const summary = results.map((result) => result.summary).join('. ');
-    this.complete(command.commandId, summary, context);
+    this.complete(command.commandId, describeChange(command, results), context);
+  }
+
+  private handleDestroy(request: IDestroyRequest, context: IHandlingContext): void {
+    const command: IDestroyCommand = {
+      commandId: this.nextCommandId(),
+      intent: 'destroy',
+      targetName: request.targetName,
+      source: context.source,
+      confidence: context.confidence,
+    };
+    const protectedTags = COMMAND_CONFIG.protectedFromDeletionTags;
+    const targets = resolveTargets(this.entityManager, command.targetName);
+    const problem = validateDestroyCommand(command, targets, protectedTags);
+    if (problem !== undefined) {
+      this.reject(context.spokenText, problem);
+      return;
+    }
+    const outcome = executeDestroy(this.entityManager, targets, protectedTags);
+    this.eventBus.emit('EntitiesDestroyed', {
+      commandId: command.commandId,
+      targetName: command.targetName,
+      destroyed: outcome.destroyed,
+    });
+    this.complete(command.commandId, describeDestroy(command.targetName, outcome), context);
   }
 
   private handleSpawn(request: ISpawnRequest, context: IHandlingContext): void {

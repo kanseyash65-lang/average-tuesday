@@ -5,6 +5,8 @@ export const COMMAND_CONFIG = {
   maxScale: 6,
   /** How far one spoken "left/right/up/down" moves something, in world pixels. */
   moveStepPixels: 120,
+  /** Entities carrying any of these tags can never be deleted by a spoken command. */
+  protectedFromDeletionTags: ['celestial'],
   exactConfidence: 1,
   /** Used when the normalizer had to fix a likely mishearing. */
   correctedConfidence: 0.8,

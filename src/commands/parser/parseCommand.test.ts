@@ -56,4 +56,38 @@ describe('parseCommand', () => {
   it('ignores words that happen to be built-in object property names', () => {
     expect(parse('spawn 5 constructor').ok).toBe(false);
   });
+
+  it('understands delete in several phrasings', () => {
+    const expected = { ok: true, kind: 'destroy', request: { targetName: 'chicken' } };
+    expect(parse('Delete all the chickens')).toMatchObject(expected);
+    expect(parse('remove every chicken')).toMatchObject(expected);
+    expect(parse('destroy the hens.')).toMatchObject(expected);
+  });
+
+  it('can delete groups and everything', () => {
+    expect(parse('delete all animals')).toMatchObject({ kind: 'destroy', request: { targetName: 'animal' } });
+    expect(parse('delete everything')).toMatchObject({ kind: 'destroy', request: { targetName: 'everything' } });
+  });
+
+  it('asks what to delete when no target is named', () => {
+    const result = parse('delete');
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toContain('delete all the chickens');
+  });
+
+  it('points modify requests at groups', () => {
+    expect(parse('make every chicken blue')).toMatchObject({
+      ok: true,
+      kind: 'modify',
+      request: { targetName: 'chicken', property: 'color' },
+    });
+    expect(parse('hide all animals')).toMatchObject({
+      kind: 'modify',
+      request: { targetName: 'animal', property: 'visibility' },
+    });
+  });
+
+  it('keeps hide separate from delete', () => {
+    expect(parse('hide the chickens')).toMatchObject({ kind: 'modify' });
+  });
 });

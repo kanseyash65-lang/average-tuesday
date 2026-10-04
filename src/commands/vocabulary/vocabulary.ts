@@ -8,12 +8,6 @@ export function lookup<T>(table: Readonly<Record<string, T>>, key: string): T | 
   return Object.hasOwn(table, key) ? table[key] : undefined;
 }
 
-/** Spoken word -> name of the entity it refers to. */
-export const TARGET_ALIASES: Readonly<Record<string, string>> = {
-  sun: 'sun',
-  sunshine: 'sun',
-};
-
 /** Spoken color -> hex color. */
 export const COLOR_WORDS: Readonly<Record<string, string>> = {
   red: '#ff3b30',
