@@ -10,6 +10,20 @@ export interface IGameEventMap {
   readonly EntityDestroyed: { readonly entityId: EntityId; readonly entityType: string };
   /** The player submitted a command, by voice (dictation) or by keyboard. */
   readonly CommandSubmitted: { readonly text: string; readonly source: CommandSource };
+  /** A command was understood and has changed the world. */
+  readonly CommandExecuted: {
+    readonly commandId: string;
+    readonly text: string;
+    readonly summary: string;
+  };
+  /** A command could not run. The reason is written for the player to read. */
+  readonly CommandRejected: { readonly text: string; readonly reason: string };
+  /** A command changed one property of one entity. Lets other systems react. */
+  readonly EntityPropertyChanged: {
+    readonly entityId: EntityId;
+    readonly property: string;
+    readonly commandId: string;
+  };
 }
 
 export type GameEventBus = IEventBus<IGameEventMap>;

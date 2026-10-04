@@ -1,5 +1,6 @@
 import type { CommandSource } from '../../commands/CommandSource';
 import type { GameEventBus } from '../../core/events/GameEvents';
+import type { Unsubscribe } from '../../core/events/IEventBus';
 import type { ILogger } from '../../utils/logger/ILogger';
 import { CommandInputController, type ICommandSubmission } from './CommandInputController';
 import './command-bar.css';
@@ -11,6 +12,8 @@ export interface ICommandBarOptions {
   readonly inputLabel: string;
 }
 
+type FeedbackKind = 'ok' | 'error';
+
 const SOURCE_ICONS: Readonly<Record<CommandSource, string>> = {
   voice: '🎙',
   text: '⌨',
@@ -18,16 +21,18 @@ const SOURCE_ICONS: Readonly<Record<CommandSource, string>> = {
 
 /**
  * The player's front door: a text field that Wispr Flow dictates into.
- * It stays focused, submits dictated text after a pause, and announces
- * each command on the event bus. It contains no game logic.
+ * It stays focused, submits dictated text after a pause, announces each command
+ * on the event bus, and shows what the game made of it. It contains no game logic.
  */
 export class CommandBar {
   private readonly eventBus: GameEventBus;
   private readonly logger: ILogger;
   private readonly maxRecentCommands: number;
   private readonly abort = new AbortController();
+  private readonly subscriptions: Unsubscribe[] = [];
   private readonly root: HTMLDivElement;
   private readonly recentList: HTMLUListElement;
+  private readonly feedback: HTMLDivElement;
   private readonly input: HTMLInputElement;
   private readonly controller: CommandInputController;
 
@@ -43,10 +48,13 @@ export class CommandBar {
 
     this.recentList = document.createElement('ul');
     this.recentList.className = 'command-bar__recent';
+    this.feedback = document.createElement('div');
+    this.feedback.className = 'command-bar__feedback';
+    this.feedback.setAttribute('role', 'status');
     this.input = this.createInput(options);
     this.root = document.createElement('div');
     this.root.className = 'command-bar';
-    this.root.append(this.recentList, this.input);
+    this.root.append(this.recentList, this.feedback, this.input);
     parent.append(this.root);
 
     this.controller = new CommandInputController(
@@ -54,11 +62,14 @@ export class CommandBar {
       options.pauseSubmitDelayMs,
     );
     this.attachListeners();
+    this.subscribeToResults();
     this.input.focus();
     this.logger.info('Command bar ready. Dictate with Wispr Flow, or type and press Enter.');
   }
 
   destroy(): void {
+    for (const unsubscribe of this.subscriptions) unsubscribe();
+    this.subscriptions.length = 0;
     this.controller.dispose();
     this.abort.abort();
     this.root.remove();
@@ -82,6 +93,13 @@ export class CommandBar {
     this.input.addEventListener('keydown', (event) => this.handleKeyDown(event), { signal });
     this.input.addEventListener('blur', () => this.reclaimFocus(), { signal });
     window.addEventListener('focus', () => this.input.focus(), { signal });
+  }
+
+  private subscribeToResults(): void {
+    this.subscriptions.push(
+      this.eventBus.on('CommandExecuted', (event) => this.showFeedback(`✓ ${event.summary}`, 'ok')),
+      this.eventBus.on('CommandRejected', (event) => this.showFeedback(`✗ ${event.reason}`, 'error')),
+    );
   }
 
   private handleInput(event: Event): void {
@@ -112,6 +130,12 @@ export class CommandBar {
     this.addRecentCommand(submission);
     this.logger.info(`Command submitted (${submission.source}): ${submission.text}`);
     this.eventBus.emit('CommandSubmitted', submission);
+  }
+
+  private showFeedback(message: string, kind: FeedbackKind): void {
+    // textContent, never innerHTML: messages can contain spoken text.
+    this.feedback.textContent = message;
+    this.feedback.className = `command-bar__feedback command-bar__feedback--${kind}`;
   }
 
   private addRecentCommand(submission: ICommandSubmission): void {

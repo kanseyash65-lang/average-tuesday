@@ -32,6 +32,29 @@
   overflow-wrap: anywhere;
 }
 
+.command-bar__feedback {
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.command-bar__feedback:empty {
+  display: none;
+}
+
+.command-bar__feedback--ok {
+  background: rgba(24, 82, 46, 0.95);
+  color: #d9ffe6;
+}
+
+.command-bar__feedback--error {
+  background: rgba(110, 60, 20, 0.95);
+  color: #ffe7cc;
+}
+
 .command-bar__input {
   width: 100%;
   box-sizing: border-box;

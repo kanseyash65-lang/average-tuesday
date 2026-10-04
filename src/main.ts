@@ -1,4 +1,5 @@
 import { Game } from 'phaser';
+import { CommandManager } from './commands/CommandManager';
 import { createLogger } from './core/boot/createLogger';
 import { createPhaserConfig } from './core/boot/createPhaserConfig';
 import { ENTITY_CONFIG } from './core/config/entityConfig';
@@ -26,6 +27,13 @@ const entityFactory = new EntityFactory(
   entityManager,
   new EntityIdGenerator(ENTITY_CONFIG.idDigits),
 );
+
+const commandManager = new CommandManager(
+  eventBus,
+  entityManager,
+  createLogger('CommandManager'),
+);
+commandManager.start();
 
 // Order matters: later scenes render on top of earlier ones.
 const SCENES = [BootScene, LoadingScene, new GameScene(eventBus, entityManager), new UIScene(eventBus)];
